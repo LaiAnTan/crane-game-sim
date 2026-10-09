@@ -1,5 +1,5 @@
 import { CLAW, GANTRY, MAX_CLEAR, MAX_LIFT } from './config';
-import { CATALOG } from './catalog';
+import { CATALOG, armScale } from './catalog';
 import type { Machine } from './machine';
 import { Payout, type ArmProfile } from './payout';
 
@@ -105,8 +105,9 @@ export class Game {
   private startPlay() {
     this.credits--;
     this.playsSinceWin++;
-    // Operators re-tune arm power for each prize; normalise to a ~340 g box.
-    const k = this.machine.prize.mass / 0.34;
+    // Operators re-tune arm power for each prize so every box plays alike:
+    // proportional to the box's weight, times a per-box trim for its shape.
+    const k = armScale(this.machine.prize);
     const p = this.payout.nextPlay();
     this.profile = { ...p, grip: p.grip * k, lift: p.lift * k, carry: p.carry * k };
     this.lastProfileStrong = p.strong;
@@ -159,6 +160,11 @@ export class Game {
         c.armGoal = Math.min(c.armGoal + 0.4 * dt * 10, CLAW.idleAngle + 0.25);
       }
     }
+
+    // Plastic arms are ghosts on the way down; solid again from the grab onward.
+    const prizeCol = m.prizeBody?.collider(0);
+    if (this.phase === 'open' || this.phase === 'drop') c.setArmsGhost(true);
+    else c.setArmsGhost(false, prizeCol);
 
     switch (this.phase) {
       case 'idle':

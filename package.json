@@ -11,7 +11,9 @@
     "sim:curve": "tsx tools/payout-curve.ts",
     "sim:reach": "tsx tools/claw-reach.ts",
     "sim:funnel": "tsx tools/funnel-drop.ts",
-    "sim:session": "tsx tools/bot-session.ts"
+    "sim:session": "tsx tools/bot-session.ts",
+    "sim:strength": "tsx tools/strength-calibrate.ts",
+    "sim:calibrate": "tsx tools/strength-calibrate.ts calibrate"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.14.0",

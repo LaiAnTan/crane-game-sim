@@ -67,4 +67,10 @@ export const MAX_CLEAR = 0.008;
 export const WIN_Y = FUNNEL.yBottom - 0.04; // a prize whose centre is below the opening has dropped
 
 // Collision groups: membership in upper 16 bits, filter in lower 16.
-export const GROUP_CLAW = (0x0002 << 16) | (0xffff & ~0x0002);
+const STATIC = 0x0001, CLAW_BIT = 0x0002, PRIZE = 0x0004;
+export const GROUP_STATIC = (STATIC << 16) | 0xffff;
+export const GROUP_PRIZE = (PRIZE << 16) | 0xffff;
+/** Claw head and rubber tips: hit everything except the claw itself. */
+export const GROUP_CLAW = (CLAW_BIT << 16) | (0xffff & ~CLAW_BIT);
+/** Arm segments while the claw comes down: pass through the prize, still hit rods/deck. */
+export const GROUP_ARM = (CLAW_BIT << 16) | (0xffff & ~CLAW_BIT & ~PRIZE);

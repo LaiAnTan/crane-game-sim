@@ -1,5 +1,6 @@
 import type { Game } from '../sim/game';
 import { CLAW, GANTRY } from '../sim/config';
+import { REF_MASS, armScale } from '../sim/catalog';
 import type { DebugViz } from '../render/debugViz';
 
 const MAX_POWER = 0.6; // N·m, full scale for the bars
@@ -70,6 +71,7 @@ export class DebugLive {
       '<h4>Prize</h4>',
       row('box', `${m.prize.title}`),
       row('mass', `${(m.prize.mass * 1000).toFixed(0)} g · weight ${(m.prize.mass * 9.81).toFixed(2)} N`),
+      row('arm scale', `×${armScale(m.prize).toFixed(2)} (weight ×${(m.prize.mass / REF_MASS).toFixed(2)} · trim ×${(m.prize.armTrim ?? 1).toFixed(2)})`),
       row('COM offset (local)', comOff),
       row('pitch / yaw / roll', euler),
       row('speed', vel),

@@ -30,7 +30,16 @@ The arm shape matches the real acrylic diamond arms: the upper segment bows out 
 
 The **rubber tip** slopes 0.72 rad toward the inside, so a hanging load pries the arm open. Whether the box stays up depends on arm power against that prying force. The acrylic segments have low friction (0.22), so they slide over box edges instead of biting.
 
-The claw collides with the prize, rods and deck, but not with itself (collision groups).
+**What touches the prize.** The claw never collides with itself, and every part hits the rods and deck. Against the prize (collision groups in `config.ts`):
+
+| Part | open / drop (coming down) | grab → release |
+|---|---|---|
+| Head | solid | solid |
+| Rubber tips | solid | solid |
+| Lower plastic arm | passes through | solid (once it overlaps the box by < 8 mm) |
+| Upper plastic arm | passes through | passes through |
+
+So the plastic arms can't shove or press the box as the claw comes down, and only the tips (and the head resting lightly on top) can. When the arms close, the lower arms squeeze the box sides. The upper arm sits right over the box's top edges when the head lands, so it never touches the prize, which stops it pressing the box down.
 
 ### Lift cap
 The claw can **never lift a prize clear**. `game.ts` records the box's 8 corner heights when the lift starts. If any corner rises more than `MAX_LIFT` (5 cm), or the whole box rises more than `MAX_CLEAR` (8 mm), the arms slip: power drops to 0 and they open slightly. The box can then tip and swing on its own, so a corner can end up higher after the slip.
@@ -50,9 +59,18 @@ Each box is a cuboid with its real dimensions (`w × d × h`) and mass. Its **ce
 
 The box lies on its back across the rods: front art up, box top toward the back, base end (warning label) facing you. About 1 in 4 placements is flipped end-for-end.
 
-## Arm power is normalised per prize
+## Arm power is proportional to box weight
 
-Operators re-tune arm power for each prize. `game.ts` scales grip/lift/carry by `prize.mass / 0.34 kg`, so the same setting feels similar on a light mini box and a heavy premium box.
+Operators re-tune arm power for each prize so every box plays alike. Each play's grip/lift/carry are multiplied by
+
+```
+armScale = (mass / 0.34 kg) × armTrim
+```
+
+- **Weight term:** a box twice as heavy gets arms twice as strong.
+- **`armTrim`:** a per-box shape correction, because the same force grips a narrow, tall or wide box differently.
+
+`npm run sim:calibrate` finds each `armTrim`. It plays a fixed set of grabs on every box (front end, middle and back end, 3 seeds) and searches for the trim at which normal arms lift the gripped end 3.8 cm on average. With the stored trims every box responds within about ±0.2 cm of that. `npm run sim:strength [normal|strong]` reports the current response per box. Rerun the calibration after changing box sizes, arm geometry or the normal arm power.
 
 ## Known behaviours
 

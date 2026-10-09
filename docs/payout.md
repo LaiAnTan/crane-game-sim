@@ -4,7 +4,7 @@ Japanese crane machines expose separate **arm power** settings for the grab, the
 
 ## Arm powers
 
-Closing-torque caps in N·m, before scaling by prize mass (see [physics.md](physics.md)):
+Closing-torque caps in N·m for a 340 g reference box. Every play multiplies them by the prize's weight ÷ 340 g times its shape trim (see [physics.md](physics.md#arm-power-is-proportional-to-box-weight)):
 
 | Profile | grip | lift | carry |
 |---|---|---|---|

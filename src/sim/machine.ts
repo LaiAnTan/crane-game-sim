@@ -1,5 +1,5 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
-import { BRIDGE, FUNNEL, INTERIOR, PHYSICS_DT, SHELF, WIN_Y } from './config';
+import { BRIDGE, FUNNEL, GROUP_PRIZE, GROUP_STATIC, INTERIOR, PHYSICS_DT, SHELF, WIN_Y } from './config';
 import { Claw } from './claw';
 import { CATALOG, type Prize } from './catalog';
 
@@ -177,7 +177,7 @@ export class Machine {
       }
       desc.setTranslation(...p.pos);
       const friction = { deck: 0.6, bar: 0.22, rail: 0.5, funnel: 0.15, shelf: 0.6, display: 0.5, wall: 0.2, pit: 0.6 }[p.kind];
-      desc.setFriction(friction).setRestitution(0.05);
+      desc.setFriction(friction).setRestitution(0.05).setCollisionGroups(GROUP_STATIC);
       this.world.createCollider(desc, body);
     }
 
@@ -224,7 +224,7 @@ export class Machine {
       .setCcdEnabled(true);
     this.prizeBody = this.world.createRigidBody(desc);
     this.world.createCollider(
-      R.ColliderDesc.cuboid(hx, hy, hz).setDensity(0).setFriction(0.5).setRestitution(0.04),
+      R.ColliderDesc.cuboid(hx, hy, hz).setDensity(0).setFriction(0.5).setRestitution(0.04).setCollisionGroups(GROUP_PRIZE),
       this.prizeBody,
     );
   }

@@ -1,7 +1,10 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
-import { CLAW, GANTRY, GROUP_CLAW } from './config';
+import { CLAW, GANTRY, GROUP_ARM, GROUP_CLAW } from './config';
 
 type R = typeof RAPIER;
+
+/** Max overlap (m) at which a ghosted arm segment may turn solid again. */
+const GHOST_RELEASE_DEPTH = 0.008;
 
 /**
  * Two-arm UFO-catcher claw.
@@ -21,6 +24,8 @@ export class Claw {
   readonly head: RAPIER.RigidBody;
   readonly arms: { body: RAPIER.RigidBody; side: 1 | -1; joint: RAPIER.RevoluteImpulseJoint }[] = [];
   readonly armColliders = new Set<number>();
+  /** Lower plastic arm segments (not the tips) — see setArmsGhost(). */
+  readonly segments: RAPIER.Collider[] = [];
   /** Every claw collider (head + arm parts), for contact queries. */
   readonly colliders: RAPIER.Collider[] = [];
   /** Torque applied to each arm on the last step (N·m, positive = opening). */
@@ -86,12 +91,15 @@ export class Claw {
           .setTranslation((a.x + b.x) / 2, (a.y + b.y) / 2, 0)
           .setRotation({ x: 0, y: 0, z: Math.sin(ang / 2), w: Math.cos(ang / 2) })
           .setMass(mass)
-          .setFriction(0.22) // smooth acrylic: slides over box edges instead of biting
+          .setFriction(0.22) // smooth acrylic
           .setCollisionGroups(GROUP_CLAW),
         body,
       );
     };
     const upper = segment({ x: 0, y: 0 }, E, CLAW.armMass * 0.35);
+    // The upper section sits right over the box's top edges when the head lands, so it
+    // never touches the prize (it would press the box down); the lower arm and tip do.
+    upper.setCollisionGroups(GROUP_ARM);
     const shaft = segment(E, T, CLAW.armMass * 0.4);
     this.armColliders.add(upper.handle);
     // Foot — slopes down toward the inside so a hanging load pries the arm open.
@@ -111,6 +119,7 @@ export class Claw {
     this.armColliders.add(shaft.handle);
     this.armColliders.add(foot.handle);
     this.colliders.push(upper, shaft, foot);
+    this.segments.push(shaft);
 
     const jd = R.JointData.revolute(
       { x: side * CLAW.hingeOffsetX, y: -CLAW.headHalfHeight, z: 0 },
@@ -127,6 +136,22 @@ export class Claw {
 
   private applyCableLimits() {
     this.cableJoint.setLimits(-this.cable, -CLAW.cableMin + 0.03);
+  }
+
+  /**
+   * While the claw comes down, the plastic arm segments pass through the prize so only
+   * the rubber tips can push it. Call with false to make them solid again — each segment
+   * turns solid once it overlaps the prize by less than GHOST_RELEASE_DEPTH; the light arm
+   * is then nudged out rather than the box being knocked.
+   */
+  setArmsGhost(on: boolean, prize?: RAPIER.Collider) {
+    for (const seg of this.segments) {
+      if (on) seg.setCollisionGroups(GROUP_ARM);
+      else if (seg.collisionGroups() === GROUP_ARM) {
+        const hit = prize ? seg.contactCollider(prize, 0) : null;
+        if (!hit || hit.distance > -GHOST_RELEASE_DEPTH) seg.setCollisionGroups(GROUP_CLAW);
+      }
+    }
   }
 
   /** Signed hinge angle of an arm, positive = open. */

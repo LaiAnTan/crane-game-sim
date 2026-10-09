@@ -49,6 +49,7 @@ The simulation runs in Node through [tsx](https://github.com/privatenumber/tsx).
 | `payout-curve.ts` | `npm run sim:curve` | Chance table and expected spend to the first strong play |
 | `claw-reach.ts` | `npm run sim:reach` | Lands the open claw on a box and reports tip height vs box bottom |
 | `funnel-drop.ts` | `npm run sim:funnel` | Drops each prize through the rods at several angles and reports win/stuck |
+| `strength-calibrate.ts` | `npm run sim:strength [normal\|strong]` · `npm run sim:calibrate` | Per-box lift/movement at the current settings, or search each box's `armTrim` so normal arms lift every box the same (runs one process per box) |
 | `bot-session.ts` | `npx tsx tools/bot-session.ts <grip> <lift> <prize> <seed> [progressive]` | A bot plays a whole session (walk the box, push the wedge, call staff after 8 plays without progress) and reports plays/yen to win. With `progressive` it ignores grip/lift and uses the default payout settings. Env `F` (wedge aim factor, default 0.8) and `GAP` (bar gap margin) |
 | `walk.ts` | `npx tsx tools/walk.ts <grip> <lift> <aimDz> [prize]` | Repeats one aim point for 15 plays and logs how the box moves |
 | `play-trace.ts` | `npx tsx tools/play-trace.ts <grip> <lift> <prize> <seed> <aimDz> [carry]` | Per-play lift height, highest corner, box pose, and when it dropped |
