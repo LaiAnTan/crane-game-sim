@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crane Game</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="stage"></div>
+
+    <header class="hud top">
+      <div class="brand">橋渡し <span>GiGO Bridge Crane</span></div>
+      <div class="credit glass"><span class="lbl">CREDIT</span><span id="credits">00</span></div>
+    </header>
+
+    <aside id="prize-card" class="glass">
+      <img id="prize-img" alt="" />
+      <div>
+        <div id="prize-title"></div>
+        <div id="prize-sub"></div>
+        <div id="prize-size"></div>
+      </div>
+    </aside>
+
+    <aside id="money" class="glass">
+      <div class="lbl">使用金額 · MONEY USED</div>
+      <div id="money-yen">¥0</div>
+      <div id="money-plays">0 plays</div>
+      <div class="pity"><div class="pity-bar"><i id="pity-fill"></i></div><span id="pity-txt">天井 0%</span></div>
+      <div id="pity-chance"></div>
+      <button id="hist-btn" class="glass btn small">履歴 History <em>H</em></button>
+    </aside>
+    <div id="history" class="glass" hidden></div>
+
+    <div id="banner"></div>
+
+    <footer class="hud bottom">
+      <div class="coins">
+        <button id="coin100" class="glass btn">¥100</button>
+        <button id="coin500" class="glass btn small">¥500 <em>×6</em></button>
+      </div>
+      <div id="prompt" class="glass"></div>
+      <div class="play">
+        <button id="staff" class="glass btn small" title="Call staff to reset the prize to an easier spot">すみません！ <em>S</em></button>
+        <button id="b1" class="glass btn big"><b>①</b><i>→</i></button>
+        <button id="b2" class="glass btn big"><b>②</b><i>↑</i></button>
+      </div>
+    </footer>
+
+    <div id="debug" class="glass" hidden></div>
+    <div id="dbg-live" class="glass" hidden></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

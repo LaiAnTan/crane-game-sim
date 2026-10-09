@@ -1,0 +1,30 @@
+{
+  "name": "gigo-bridge-crane",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tools.json",
+    "sim:curve": "tsx tools/payout-curve.ts",
+    "sim:reach": "tsx tools/claw-reach.ts",
+    "sim:funnel": "tsx tools/funnel-drop.ts",
+    "sim:session": "tsx tools/bot-session.ts"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.14.0",
+    "animejs": "^3.2.2",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/animejs": "^3.1.12",
+    "@types/node": "^22.7.5",
+    "@types/three": "^0.169.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  },
+  "description": "Japanese crane game (UFO Catcher bridge / \u6a4b\u6e21\u3057) simulator in the browser \u2014 Three.js + Rapier."
+}
