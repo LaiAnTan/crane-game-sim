@@ -107,8 +107,8 @@ export class Game {
     this.playsSinceWin++;
     // Operators re-tune arm power for each prize so every box plays alike:
     // proportional to the box's weight, times a per-box trim for its shape.
-    const k = armScale(this.machine.prize);
     const p = this.payout.nextPlay();
+    const k = armScale(this.machine.prize, p.strong);
     this.profile = { ...p, grip: p.grip * k, lift: p.lift * k, carry: p.carry * k };
     this.lastProfileStrong = p.strong;
     this.emit({ type: 'play', strong: p.strong });

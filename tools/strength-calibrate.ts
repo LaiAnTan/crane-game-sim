@@ -3,7 +3,7 @@
 //
 // For each prize it runs a fixed set of single plays from the starting placement
 // (grip near the front end, the middle and the back end) and reports:
-//   lift — how far the gripped end came up (cm, highest corner), averaged
+//   lift — how far the claw lifted the box while holding it (cm, highest corner), averaged
 //   move — how far the box moved/turned (cm of centre travel + 1 cm per 10° of tilt)
 //
 // Usage:
@@ -34,16 +34,22 @@ function play(g: Game, tx: number, tz: number) {
   let lift = 0;
   for (let guard = 0; !['ready', 'idle', 'win'].includes(g.phase as string) && guard < 240 * 60; guard++) {
     g.tick(dt);
-    if ((g.phase as string) === 'lift' || (g.phase as string) === 'top') lift = Math.max(lift, ...m.prizeCornerYs().map((y, i) => y - c0[i]));
+    // Only count lift while the claw actually holds the box (touching it, arms not yet
+    // slipped) — not the swing of the far end once it tips after a slip.
+    const holding = !g.slipped && m.clawContacts().points.length > 0;
+    if (((g.phase as string) === 'lift' || (g.phase as string) === 'top') && holding)
+      lift = Math.max(lift, ...m.prizeCornerYs().map((y, i) => y - c0[i]));
   }
   return lift;
 }
 
 type Profile = 'normal' | 'strong';
 
-/** Average lift (cm) and movement score for one prize at a given trim. */
+/** Average lift (cm) and movement score for one prize at a given trim for that profile. */
 function measure(base: (typeof CATALOG)[number], profile: Profile, trim: number) {
-  const p = { ...base, armTrim: trim };
+  // Plays run in skill mode with `normal` set to the chosen profile's powers, so the
+  // trim under test goes in armTrim either way.
+  const p = { ...base, armTrim: trim, strongTrim: undefined };
   let liftSum = 0, moveSum = 0, n = 0;
   for (const seed of SEEDS) {
     for (const f of [-0.6, 0, 0.6]) {
@@ -70,7 +76,13 @@ function measure(base: (typeof CATALOG)[number], profile: Profile, trim: number)
   return { lift: (liftSum / n) * 100, move: moveSum / n };
 }
 
-const TARGET_LIFT = 3.8; // cm — average gripped-end lift with normal arms
+const trimFor = (p: (typeof CATALOG)[number], profile: Profile) =>
+  profile === 'strong' ? p.strongTrim ?? p.armTrim ?? 1 : p.armTrim ?? 1;
+
+// Targets: average gripped-end lift (cm). Normal arms nudge; strong arms reliably bring
+// the end up to just under the 5 cm lift cap (any stronger only makes the box swing more).
+const TARGET: Record<Profile, number> = { normal: 3.2, strong: 4.8 };
+const STRONG_MARGIN = 1.5;
 
 if (process.argv[2] === 'calibrate') {
   const id = process.argv[3];
@@ -89,25 +101,36 @@ if (process.argv[2] === 'calibrate') {
           }),
       ),
     );
-    console.log(`target normal-arm lift ${TARGET_LIFT} cm — copy armTrim values into src/sim/catalog.ts\n` + results.join('\n'));
+    console.log(`targets: normal lift ${TARGET.normal} cm, strong lift ${TARGET.strong} cm — copy armTrim / strongTrim into src/sim/catalog.ts\n` + results.join('\n'));
   } else {
     const p = targets[0];
     // Bisection on log(trim): lift rises with arm power.
-    let lo = 0.3, hi = 6;
-    for (let i = 0; i < 8; i++) {
-      const mid = Math.sqrt(lo * hi);
-      if (measure(p, 'normal', mid).lift < TARGET_LIFT) lo = mid;
-      else hi = mid;
-    }
-    const trim = Math.sqrt(lo * hi);
-    const n = measure(p, 'normal', trim), st = measure(p, 'strong', trim);
-    console.log(`${p.id.padEnd(15)} armTrim: ${trim.toFixed(2)}   normal lift ${n.lift.toFixed(2)} cm move ${n.move.toFixed(2)}   strong lift ${st.lift.toFixed(2)} cm move ${st.move.toFixed(2)}`);
+    const solve = (profile: Profile) => {
+      let lo = 0.05, hi = 6;
+      for (let i = 0; i < 9; i++) {
+        const mid = Math.sqrt(lo * hi);
+        if (measure(p, profile, mid).lift < TARGET[profile]) lo = mid;
+        else hi = mid;
+      }
+      return Math.sqrt(lo * hi);
+    };
+    const tn = solve('normal');
+    // Strong: the weakest trim that brings the end up to the cap, times a safety margin
+    // so play-to-play jitter doesn't drop strong plays below it. Boxes whose shape makes
+    // the claw lift them flat (the "never lift clear" rule slips first) can't reach the
+    // target at any power; they keep their normal trim for strong plays.
+    const threshold = solve('strong');
+    const reachable = measure(p, 'strong', threshold * STRONG_MARGIN).lift >= TARGET.strong - 0.3;
+    const ts = reachable ? threshold * STRONG_MARGIN : tn;
+    const n = measure(p, 'normal', tn), st = measure(p, 'strong', ts);
+    console.log(`${p.id.padEnd(15)} armTrim: ${tn.toFixed(2)}, strongTrim: ${ts.toFixed(2)}${reachable ? '' : ' (cap unreachable — shape-limited)'}   normal lift ${n.lift.toFixed(2)} cm   strong lift ${st.lift.toFixed(2)} cm`);
   }
 } else {
   const profile = (process.argv[2] ?? 'normal') as Profile;
-  console.log(`${profile} arms (current armTrim)`);
+  console.log(`${profile} arms (current trims)`);
   for (const p of CATALOG) {
-    const r = measure(p, profile, p.armTrim ?? 1);
-    console.log(`${p.id.padEnd(15)} ${String(Math.round(p.mass * 1000)).padStart(4)} g  ${(p.w * 100).toFixed(0)}×${(p.d * 100).toFixed(0)}×${(p.h * 100).toFixed(0)}  trim ${(p.armTrim ?? 1).toFixed(2)}  lift ${r.lift.toFixed(2).padStart(5)} cm  move ${r.move.toFixed(2).padStart(5)}`);
+    const t = trimFor(p, profile);
+    const r = measure(p, profile, t);
+    console.log(`${p.id.padEnd(15)} ${String(Math.round(p.mass * 1000)).padStart(4)} g  ${(p.w * 100).toFixed(0)}×${(p.d * 100).toFixed(0)}×${(p.h * 100).toFixed(0)}  trim ${t.toFixed(2)}  lift ${r.lift.toFixed(2).padStart(5)} cm  move ${r.move.toFixed(2).padStart(5)}`);
   }
 }

@@ -64,13 +64,29 @@ The box lies on its back across the rods: front art up, box top toward the back,
 Operators re-tune arm power for each prize so every box plays alike. Each play's grip/lift/carry are multiplied by
 
 ```
-armScale = (mass / 0.34 kg) × armTrim
+armScale = (mass / 0.34 kg) × trim        trim = armTrim (normal plays) or strongTrim (strong plays)
 ```
 
 - **Weight term:** a box twice as heavy gets arms twice as strong.
-- **`armTrim`:** a per-box shape correction, because the same force grips a narrow, tall or wide box differently.
+- **Trims:** per-box shape corrections, because the same force grips a narrow, tall or wide box differently.
 
-`npm run sim:calibrate` finds each `armTrim`. It plays a fixed set of grabs on every box (front end, middle and back end, 3 seeds) and searches for the trim at which normal arms lift the gripped end 3.8 cm on average. With the stored trims every box responds within about ±0.2 cm of that. `npm run sim:strength [normal|strong]` reports the current response per box. Rerun the calibration after changing box sizes, arm geometry or the normal arm power.
+`npm run sim:calibrate` finds both trims. It plays a fixed set of grabs on every box (front end, middle and back end, 3 seeds). It measures how far the claw lifts the box **while holding it**, which ignores the swing after the arms slip, then searches:
+
+- **`armTrim`:** normal arms lift the gripped end 3.2 cm on average.
+- **`strongTrim`:** the weakest strong arms that bring the end up to the 5 cm lift cap (4.8 cm average), × 1.5 so play-to-play jitter doesn't drop a strong play below it.
+
+With the stored trims:
+
+| | normal lift | strong lift |
+|---|---|---|
+| Standard, Mini, Tall, Slim, Premium | 3.1–3.5 cm | 5.0 cm (cap) |
+| Wide | 2.7 cm | ~3.0 cm |
+
+The **wide** box is shape-limited. The claw grips it nearly flat, so it starts lifting the whole box and the never-lift-clear rule makes the arms slip before one end reaches the cap. No strength fixes that, so its strong trim equals its normal trim.
+
+After a strong lift, what happens next still depends on the box. The same 5 cm lift tips some boxes into the gap and barely moves the tall box (the `move` column of `npm run sim:strength strong`).
+
+`npm run sim:strength [normal|strong]` reports the current response per box. Rerun the calibration after changing box sizes, arm geometry, or the normal or strong arm power.
 
 ## Known behaviours
 
