@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { CLAW } from '../sim/config';
+import { BRIDGE, CLAW, FUNNEL, INTERIOR, SHELF } from '../sim/config';
+import { rodGap } from '../sim/machine';
 import { CATALOG, type Prize } from '../sim/catalog';
 import { prizeMaterials, type BoxPose } from './boxTexture';
 
@@ -86,6 +87,15 @@ export class ArcadeRoom {
         color: '#ffffff', transparent: true, opacity: 0.06, roughness: 0.02, depthWrite: false,
       }),
       led: new THREE.MeshBasicMaterial({ color: '#d8f0ff' }),
+      deckStrip: std('#d9dbe0', { roughness: 0.85, emissive: '#ffffff', emissiveIntensity: 0.25 }),
+      clamp: std('#f4f4f6', { roughness: 0.35 }),
+      shelf: std('#ffffff', { roughness: 0.3, emissive: '#ffffff', emissiveIntensity: 0.3 }),
+      funnel: new THREE.MeshPhysicalMaterial({
+        color: '#f2f3f6', roughness: 0.25, clearcoat: 0.6, side: THREE.DoubleSide, emissive: '#ffffff', emissiveIntensity: 0.3,
+      }),
+      backWall: std('#f2f2f5', { roughness: 0.5, emissive: '#ffffff', emissiveIntensity: 0.4 }),
+      ceilingLed: new THREE.MeshBasicMaterial({ color: '#ffffff' }),
+      chute: new THREE.MeshStandardMaterial({ color: '#2a2633', roughness: 0.9, side: THREE.BackSide }),
       edge: new THREE.MeshBasicMaterial({ color: '#3a86ff' }),
     };
     this.shell();
@@ -131,7 +141,7 @@ export class ArcadeRoom {
     // Ceiling: dark tiles, fluorescent strips, a duct. Single-sided, so from above you see straight in.
     const ceil = new THREE.Mesh(
       new THREE.PlaneGeometry(W, depth),
-      new THREE.MeshStandardMaterial({ color: '#2b2d33', roughness: 0.9 }),
+      new THREE.MeshStandardMaterial({ color: '#2456a8', roughness: 0.9 }),
     );
     ceil.rotation.x = Math.PI / 2;
     ceil.position.set(0, fy + height, wz + depth / 2);
@@ -278,7 +288,17 @@ export class ArcadeRoom {
     const key = `${p.id}:${pose}`;
     let m = this.prizeMats.get(key);
     if (!m) {
-      m = prizeMaterials(p, pose);
+      // Cloned so the playable machine's own materials are untouched; self-lit a little, like an
+      // interior lit by the cabinet's ceiling panel.
+      m = prizeMaterials(p, pose).map((src) => {
+        const c = src.clone() as THREE.MeshStandardMaterial;
+        if (c.map) {
+          c.emissive = new THREE.Color('#ffffff');
+          c.emissiveMap = c.map;
+          c.emissiveIntensity = 0.45;
+        }
+        return c;
+      });
       this.prizeMats.set(key, m);
     }
     return m;
@@ -288,65 +308,101 @@ export class ArcadeRoom {
   };
 
   /**
-   * Contents of one play cell, laid out like the playable machine: a white back shelf with prize boxes
-   * standing on it, a rack of chrome rods over a dark pit, a box or two lying across the rods, and a
-   * claw hanging from the ceiling. `cx` is the cell centre (machine-local x), `hw` its width.
+   * Contents of one play cell: a copy of the playable machine's layout in cabinet-local coordinates
+   * (rod rack, white funnel with chute, deck strips, back shelf and stacked prize boxes, a box lying on
+   * the rods) plus a claw. `cx` is the cell centre, `hw` its width. Uses the same constants as the sim,
+   * so the rod count, spacing and funnel match the main machine for the cell's prize.
    */
   private stuff(g: THREE.Group, cx: number, hw: number, lod: Lod, seed: number) {
     const r = rng(seed * 131 + 7);
-    const rx = hw / 2 - 0.06;
-    const floorTop = LOWER_H + 0.005;
-    const shelfD = 0.13, shelfH = 0.05;
-    const shelfZ = -BD / 2 + 0.05 + shelfD / 2 + 0.01;
-    const shelfTop = LOWER_H + shelfH;
+    const M = this.m;
+    const Y0 = LOWER_H + 0.02; // the main machine's deck surface (y = 0), in cabinet-local y
+    const ix0 = INTERIOR.x0, ix1 = INTERIOR.x1, iw = ix1 - ix0;
+    const mesh = (geo: THREE.BufferGeometry, mat: THREE.Material | THREE.Material[], x: number, y: number, z: number) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z);
+      g.add(m);
+      return m;
+    };
+    const bx = (w: number, h: number, d: number, mat: THREE.Material, x: number, y: number, z: number) =>
+      mesh(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
 
-    // Shelf along the back wall
-    const shelf = new THREE.Mesh(new THREE.BoxGeometry(hw - 0.09, shelfH, shelfD), this.m.body);
-    shelf.position.set(cx, LOWER_H + shelfH / 2, shelfZ);
-    g.add(shelf);
+    // ---- rod rack: same maths as Machine.buildStatics
+    // Every cell uses the main machine's starting prize (CATALOG[0]) so the rack looks identical.
+    const prize = CATALOG[0];
+    const rr = BRIDGE.barRadius;
+    const barY = Y0 + BRIDGE.barLift + rr;
+    const pitch = rodGap(prize, 0.016) + 2 * rr;
+    const barZs: [number, number] = [BRIDGE.cz - pitch / 2, BRIDGE.cz + pitch / 2];
+    const zFirst = SHELF.z1 + 0.02, zLast = INTERIOR.z1 - 0.05;
+    const rods: number[] = [];
+    for (let z = barZs[0]; z >= zFirst; z -= pitch) rods.unshift(z);
+    for (let z = barZs[1]; z <= zLast; z += pitch) rods.push(z);
+    const hz0 = rods[0] - rr - BRIDGE.holeLip, hz1 = rods[rods.length - 1] + rr + BRIDGE.holeLip;
 
-    // Standing prize boxes on the shelf (same box art as the playable machine)
-    let x = cx - rx + 0.02;
-    while (true) {
-      const p = CATALOG[Math.floor(r() * CATALOG.length)];
-      const half = p.w / 2;
-      if (x + p.w > cx + rx) break;
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(p.w, p.h, p.d), this.prizeMatsFor(p, 'standing'));
-      mesh.position.set(x + half, shelfTop + p.h / 2, shelfZ + (r() - 0.5) * 0.015);
-      mesh.rotation.y = (r() - 0.5) * 0.12;
-      g.add(mesh);
-      x += p.w + 0.006;
+    // deck strips in front of and behind the rack
+    for (const [z0, z1] of [[INTERIOR.z0, hz0], [hz1, INTERIOR.z1]]) {
+      if (z1 - z0 < 0.002) continue;
+      bx(iw, 0.02, z1 - z0, M.deckStrip, cx, Y0 - 0.01, (z0 + z1) / 2);
     }
-
-    // Dark pit and chrome rod rack in front of the shelf
-    const pitZ0 = shelfZ + shelfD / 2 + 0.01, pitZ1 = BD / 2 - 0.07;
-    const pit = new THREE.Mesh(new THREE.BoxGeometry(hw - 0.09, 0.01, pitZ1 - pitZ0), this.m.dark);
-    pit.position.set(cx, floorTop + 0.004, (pitZ0 + pitZ1) / 2);
-    g.add(pit);
-    const rodY = LOWER_H + 0.03;
-    const rods = Math.max(3, Math.floor((pitZ1 - pitZ0) / 0.075));
-    for (let i = 0; i < rods; i++) {
-      const rod = new THREE.Mesh(this.geo.rod, this.m.silver);
+    for (const z of rods) {
+      const rod = mesh(this.geo.rod, M.silver, cx, barY, z);
       rod.rotation.z = Math.PI / 2;
-      rod.position.set(cx, rodY, pitZ0 + 0.03 + (i * (pitZ1 - pitZ0 - 0.06)) / (rods - 1));
-      rod.scale.set(0.006, hw - 0.09, 0.006);
-      g.add(rod);
+      rod.scale.set(rr, iw - 0.01, rr);
+      if (lod === 0) for (const sx of [-1, 1]) bx(0.03, 0.026, 0.028, M.clamp, cx + sx * (ix1 - 0.012), barY - 0.004, z);
+    }
+    for (const sx of [-1, 1]) bx(0.02, 0.024, hz1 - hz0, M.clamp, cx + sx * (ix1 - 0.012), barY - rr - 0.012, (hz0 + hz1) / 2);
+
+    // ---- funnel: four sloped white panels to a central opening, dark chute, chrome lip
+    const yt = Y0 + FUNNEL.yTop, yb = Y0 + FUNNEL.yBottom;
+    const ocz = (hz0 + hz1) / 2;
+    const o = {
+      x0: -FUNNEL.openingX / 2, x1: FUNNEL.openingX / 2,
+      z0: Math.max(hz0 + 0.02, ocz - FUNNEL.openingZ / 2), z1: Math.min(hz1 - 0.02, ocz + FUNNEL.openingZ / 2),
+    };
+    const t = { x0: ix0 + 0.004, x1: ix1 - 0.004, z0: hz0, z1: hz1 };
+    const quads: number[][][] = [
+      [[t.x0, yt, t.z0], [t.x0, yt, t.z1], [o.x0, yb, o.z1], [o.x0, yb, o.z0]],
+      [[t.x1, yt, t.z1], [t.x1, yt, t.z0], [o.x1, yb, o.z0], [o.x1, yb, o.z1]],
+      [[t.x1, yt, t.z0], [t.x0, yt, t.z0], [o.x0, yb, o.z0], [o.x1, yb, o.z0]],
+      [[t.x0, yt, t.z1], [t.x1, yt, t.z1], [o.x1, yb, o.z1], [o.x0, yb, o.z1]],
+    ];
+    const pos: number[] = [];
+    for (const [a, b, c, d] of quads) for (const v of [a, b, c, a, c, d]) pos.push(cx + v[0], v[1], v[2]);
+    const fgeo = new THREE.BufferGeometry();
+    fgeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    fgeo.computeVertexNormals();
+    mesh(fgeo, M.funnel, 0, 0, 0);
+    mesh(new THREE.BoxGeometry(o.x1 - o.x0, 0.4, o.z1 - o.z0), M.chute, cx, yb - 0.2, (o.z0 + o.z1) / 2);
+    if (lod === 0) {
+      const w = o.x1 - o.x0, d = o.z1 - o.z0, lcz = (o.z0 + o.z1) / 2;
+      bx(w + 0.012, 0.006, 0.006, M.silver, cx, yb, o.z0);
+      bx(w + 0.012, 0.006, 0.006, M.silver, cx, yb, o.z1);
+      bx(0.006, 0.006, d, M.silver, cx + o.x0, yb, lcz);
+      bx(0.006, 0.006, d, M.silver, cx + o.x1, yb, lcz);
     }
 
-    // A box lying across the rods, near enough to be seen
-    if (lod === 0 || r() < 0.6) {
-      const p = CATALOG[Math.floor(r() * CATALOG.length)];
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(p.w, p.d, p.h), this.prizeMatsFor(p, 'lying'));
-      mesh.position.set(cx + (r() - 0.5) * rx, rodY + 0.006 + p.d / 2, pitZ0 + 0.1);
-      mesh.rotation.y = (r() - 0.5) * 0.7;
-      g.add(mesh);
+    // ---- back shelf and stacked prize boxes along the back wall
+    bx(iw, SHELF.height, SHELF.z1 - SHELF.z0, M.shelf, cx, Y0 + SHELF.height / 2, (SHELF.z0 + SHELF.z1) / 2);
+    let px = ix0 + 0.006;
+    for (let col = seed; ; col++) {
+      const p = CATALOG[col % CATALOG.length];
+      if (px + p.w > ix1 - 0.004) break;
+      for (let y = SHELF.height; y + p.h < INTERIOR.height - 0.12; y += p.h + 0.001) {
+        mesh(new THREE.BoxGeometry(p.w, p.h, p.d), this.prizeMatsFor(p, 'standing'), cx + px + p.w / 2, Y0 + y + p.h / 2, SHELF.z0 + 0.004 + p.d / 2);
+      }
+      px += p.w + 0.003;
     }
 
-    // Claw: the same head, coiled cable and acrylic arms as the playable machine
-    const clawX = cx + (r() * 2 - 1) * rx * 0.5;
-    const clawZ = pitZ0 + (pitZ1 - pitZ0) * (0.3 + r() * 0.4);
+    // ---- a prize lying across the rods, as at the start of a play
+    const lying = mesh(new THREE.BoxGeometry(prize.w, prize.d, prize.h), this.prizeMatsFor(prize, 'lying'), cx + (r() - 0.5) * 0.2, barY + rr + prize.d / 2 + 0.002, BRIDGE.cz);
+    lying.rotation.y = (r() - 0.5) * 0.3;
+
+    // ---- claw: the same head, coiled cable and acrylic arms as the playable machine
+    const clawX = cx + (r() * 2 - 1) * 0.2;
+    const clawZ = -0.1 + r() * 0.3;
     const topY = LOWER_H + GLASS_H;
-    const clawY = LOWER_H + CLAW.armLength + 0.1 + r() * 0.12;
+    const clawY = Y0 + CLAW.armLength + 0.12 + r() * 0.12;
     const claw = this.clawTemplate().clone();
     claw.position.set(clawX, clawY, clawZ);
     g.add(claw);
@@ -410,15 +466,16 @@ export class ArcadeRoom {
     const tipM = new THREE.MeshStandardMaterial({ color: '#d9dde3', metalness: 0.9, roughness: 0.2 });
     for (const side of [-1, 1]) {
       const arm = new THREE.Group();
-      arm.position.x = side * CLAW.hingeOffsetX;
+      arm.position.set(side * CLAW.hingeOffsetX, -CLAW.headHalfHeight, 0); // hinge is at the head's underside (claw.ts)
+      arm.rotation.z = side * CLAW.idleAngle; // armAngle = side * rotation.z, so idle = -0.05 rad
       const ex = side * CLAW.elbowX, ey = -CLAW.elbowY, tx = side * CLAW.tipX;
       const s = new THREE.Shape();
-      s.moveTo(-side * 0.008, 0.006);
-      s.lineTo(ex + side * 0.008, ey);
-      s.lineTo(tx + side * 0.006, -L);
-      s.lineTo(tx - side * 0.008, -L + 0.004);
-      s.lineTo(ex - side * 0.01, ey);
-      s.lineTo(side * 0.006, 0.006);
+      s.moveTo(side * 0.006, 0.006); // hinge, outer side
+      s.lineTo(ex + side * 0.008, ey); // elbow, outer
+      s.lineTo(tx + side * 0.006, -L); // tip, outer
+      s.lineTo(tx - side * 0.008, -L + 0.004); // tip, inner
+      s.lineTo(ex - side * 0.01, ey); // elbow, inner
+      s.lineTo(-side * 0.008, 0.006); // hinge, inner
       const geo = new THREE.ExtrudeGeometry(s, { depth: 0.006, bevelEnabled: false });
       geo.translate(0, 0, -0.003);
       const plate = new THREE.Mesh(geo, acrylic);
@@ -477,8 +534,13 @@ export class ArcadeRoom {
       return g;
     }
 
-    // Lower cabinet with magenta pinstripes
-    box(w, LOWER_H, BD, M.body, 0, LOWER_H / 2, 0);
+    // Lower cabinet with magenta pinstripes. Hollow (four walls + inner floor), like the playable
+    // machine, so the funnel under the rods is visible through the glass.
+    const FW = 0.045;
+    for (const sz of [-1, 1]) box(w, LOWER_H, FW, M.body, 0, LOWER_H / 2, sz * (BD / 2 - FW / 2));
+    for (const sx of [-1, 1]) box(FW, LOWER_H, BD, M.body, sx * (w / 2 - FW / 2), LOWER_H / 2, 0);
+    if (kind === 'twin') box(FW, LOWER_H, BD, M.body, 0, LOWER_H / 2, 0);
+    box(w, 0.02, BD, M.dark, 0, 0.06, 0);
     box(w + 0.006, 0.035, BD + 0.006, M.mag, 0, 0.07, 0);
     box(w + 0.01, 0.05, BD + 0.01, M.dark, 0, 0.025, 0);
     for (const sx of [-1, 1]) box(0.035, LOWER_H - 0.18, 0.004, M.mag, sx * (w / 2 - 0.05), LOWER_H / 2 + 0.03, BD / 2 + 0.002);
@@ -517,7 +579,11 @@ export class ArcadeRoom {
     }
     const glass = box(w - 0.09, GLASS_H, BD - 0.09, M.glass, 0, LOWER_H + GLASS_H / 2, 0);
     glass.renderOrder = 3;
-    add(new THREE.PlaneGeometry(w - 0.09, GLASS_H - 0.02), M.deck, 0, LOWER_H + GLASS_H / 2, -BD / 2 + 0.05);
+    add(new THREE.PlaneGeometry(w - 0.09, GLASS_H - 0.02), M.backWall, 0, LOWER_H + GLASS_H / 2, -0.326);
+    // Bright LED panel under each cell's ceiling, like the playable machine's
+    for (let i = 0; i < halves; i++) {
+      box(hw - 0.12, 0.006, 0.5, M.ceilingLed, -w / 2 + hw * (i + 0.5), LOWER_H + GLASS_H - 0.004, 0.02);
+    }
     box(w, 0.03, BD, M.body, 0, LOWER_H + GLASS_H + 0.015, 0);
     box(w, HEADER_H - 0.03, BD, M.body, 0, LOWER_H + GLASS_H + 0.03 + (HEADER_H - 0.03) / 2, 0);
     box(w + 0.004, 0.04, BD + 0.004, M.mag, 0, LOWER_H + GLASS_H + HEADER_H - 0.016, 0);

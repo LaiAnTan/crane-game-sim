@@ -374,12 +374,12 @@ export class Renderer3D {
       // Acrylic diamond matching the physics arm (hinge → elbow → tip).
       const ex = side * CLAW.elbowX, ey = -CLAW.elbowY, tx = side * CLAW.tipX;
       const s = new THREE.Shape();
-      s.moveTo(-side * 0.008, 0.006);
-      s.lineTo(ex + side * 0.008, ey);
-      s.lineTo(tx + side * 0.006, -L);
-      s.lineTo(tx - side * 0.008, -L + 0.004);
-      s.lineTo(ex - side * 0.01, ey);
-      s.lineTo(side * 0.006, 0.006);
+      s.moveTo(side * 0.006, 0.006); // hinge, outer side
+      s.lineTo(ex + side * 0.008, ey); // elbow, outer
+      s.lineTo(tx + side * 0.006, -L); // tip, outer
+      s.lineTo(tx - side * 0.008, -L + 0.004); // tip, inner
+      s.lineTo(ex - side * 0.01, ey); // elbow, inner
+      s.lineTo(-side * 0.008, 0.006); // hinge, inner
       const geo = new THREE.ExtrudeGeometry(s, { depth: 0.006, bevelEnabled: false });
       geo.translate(0, 0, -0.003);
       const plate = new THREE.Mesh(geo, acrylic);
