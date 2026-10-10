@@ -11,12 +11,13 @@ import { CLAW, GANTRY, INTERIOR } from '../sim/config';
 import { CATALOG } from '../sim/catalog';
 import type { Machine } from '../sim/machine';
 import { prizeMaterials } from './boxTexture';
+import { ArcadeRoom } from './arcade';
 
-export const BG = '#100d16';
+export const BG = '#3a3d45';
 
 const C = {
   body: '#e9e9ee',
-  magenta: '#d6157e',
+  magenta: '#1f5fd0',
   deck: '#d9dbe0',
   chrome: '#d7dbe2',
   rubber: '#e2434b',
@@ -48,14 +49,13 @@ export class Renderer3D {
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.8;
+    this.renderer.toneMappingExposure = 0.65;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(this.renderer.domElement);
 
-    // Dark arcade floor: the machine's own lights do most of the work.
+    // Arcade room: wall behind the machine, light tiled floor, no fog gradient.
     this.scene.background = new THREE.Color(BG);
-    this.scene.fog = new THREE.Fog(BG, 2.6, 6.5);
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     this.scene.environmentIntensity = 0.22;
@@ -70,12 +70,16 @@ export class Renderer3D {
     this.controls.minDistance = 0.7;
     this.controls.maxDistance = 4;
     this.controls.maxPolarAngle = Math.PI * 0.62;
+    // The machine's back is against the wall: keep the camera on the player's side.
+    this.controls.minAzimuthAngle = -Math.PI * 0.33;
+    this.controls.maxAzimuthAngle = Math.PI * 0.33;
+    this.controls.minPolarAngle = Math.PI * 0.3;
     this.controls.update();
 
     const size = new THREE.Vector2(container.clientWidth, container.clientHeight);
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.composer.addPass(new UnrealBloomPass(size, 0.45, 0.5, 0.95));
+    this.composer.addPass(new UnrealBloomPass(size, 0.25, 0.4, 1.1));
     this.composer.addPass(new OutputPass());
 
     this.lights();
@@ -94,16 +98,15 @@ export class Renderer3D {
   }
 
   private lights() {
-    // Room: very low, cool ambient plus coloured spill from neighbouring machines.
-    this.scene.add(new THREE.HemisphereLight('#6b5a8f', '#0b0910', 0.18));
-    const rim = new THREE.DirectionalLight('#6f7dff', 0.55);
-    rim.position.set(-2, 2.5, -2.5);
-    this.scene.add(rim);
-    const spillPink = new THREE.PointLight('#ff2d95', 1.4, 3.2, 1.6);
-    spillPink.position.set(1.4, 0.2, 1.2);
-    const spillCyan = new THREE.PointLight('#2fd4ff', 1.0, 3.2, 1.6);
-    spillCyan.position.set(-1.5, 0.6, 0.9);
-    this.scene.add(spillPink, spillCyan);
+    // Room: bright, neutral shop lighting (fluorescent ceiling strips).
+    this.scene.add(new THREE.HemisphereLight('#e8ecff', '#6a6d76', 0.7));
+    const room = new THREE.DirectionalLight('#ffffff', 0.6);
+    room.position.set(0.5, 3, 3);
+    this.scene.add(room);
+    const wash = new THREE.SpotLight('#fff6ea', 2, 6, 1.0, 0.9, 1.2);
+    wash.position.set(0, 2.2, -0.2);
+    wash.target.position.set(0, 0.6, -0.7);
+    this.scene.add(wash, wash.target);
 
     // Cabinet ceiling: a bright LED panel lighting the play field from above.
     RectAreaLightUniformsLib.init();
@@ -221,6 +224,9 @@ export class Renderer3D {
       const px = sx * (X1 + F / 2), pz = sz * (Z1 + F / 2);
       this.box(F, top + 0.02, F, sz > 0 ? silverM : bodyM, px, top / 2 - 0.01, pz);
     }
+    // Blue LED edge strips down the outer front corners, floor to ceiling box
+    const edgeM = new THREE.MeshBasicMaterial({ color: '#3a86ff' });
+    for (const sx of [-1, 1]) this.box(0.012, top - floorY, 0.012, edgeM, sx * (BW / 2 - 0.006), (top + floorY) / 2, FZ + 0.004);
     // Interior LED strips on the front pillars
     for (const sx of [-1, 1]) this.box(0.006, top - 0.04, 0.006, this.led('#ffffff'), sx * (X1 - 0.004), top / 2, Z1 - 0.004);
 
@@ -249,13 +255,13 @@ export class Renderer3D {
     this.box(BW + 0.004, 0.045, BD + 0.004, magM, 0, 0.222, 0, header);
     this.box(BW + 0.004, 0.012, BD + 0.004, magM, 0, 0.006, 0, header);
     const [sc, sctx] = mkCanvas(1600, 400);
-    sctx.fillStyle = '#ffffff';
+    sctx.fillStyle = '#1b4fa0';
     sctx.fillRect(0, 0, 1600, 400);
-    sctx.fillStyle = '#1f7ae0';
+    sctx.fillStyle = '#ffffff';
     sctx.font = '900 200px "Avenir Next", system-ui, sans-serif';
     sctx.textBaseline = 'middle';
     sctx.fillText('GiGO', 90, 215);
-    sctx.fillStyle = '#1f7ae0';
+    sctx.fillStyle = '#ffffff';
     sctx.font = '600 44px "Avenir Next", system-ui';
     ['Get', 'into the', 'Gaming', 'Oasis'].forEach((l, i) => sctx.fillText(l, 640, 105 + i * 62));
     // Rainbow chevrons
@@ -283,15 +289,12 @@ export class Renderer3D {
     num.position.set(-BW / 2 + 0.05, 0.222, BD / 2 + 0.004);
     header.add(num);
 
-    // Dark glossy arcade floor that fades into the background.
-    const floor = new THREE.Mesh(
-      new THREE.CircleGeometry(7, 64),
-      new THREE.MeshStandardMaterial({ color: '#1a1622', roughness: 0.38, metalness: 0.25 }),
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = floorY;
-    floor.receiveShadow = true;
-    this.scene.add(floor);
+    this.room(floorY, Z0 - F);
+  }
+
+  /** Tiled floor, ceiling, three walls and rows of neighbouring machines (see arcade.ts). */
+  private room(floorY: number, backZ: number) {
+    this.scene.add(new ArcadeRoom(floorY, backZ).group);
   }
 
   private text(s: string, w: number, h: number, x: number, y: number, z: number, bg: string, fg: string) {
@@ -371,12 +374,12 @@ export class Renderer3D {
       // Acrylic diamond matching the physics arm (hinge → elbow → tip).
       const ex = side * CLAW.elbowX, ey = -CLAW.elbowY, tx = side * CLAW.tipX;
       const s = new THREE.Shape();
-      s.moveTo(-side * 0.008, 0.006);
-      s.lineTo(ex + side * 0.008, ey);
-      s.lineTo(tx + side * 0.006, -L);
-      s.lineTo(tx - side * 0.008, -L + 0.004);
-      s.lineTo(ex - side * 0.01, ey);
-      s.lineTo(side * 0.006, 0.006);
+      s.moveTo(side * 0.006, 0.006); // hinge, outer side
+      s.lineTo(ex + side * 0.008, ey); // elbow, outer
+      s.lineTo(tx + side * 0.006, -L); // tip, outer
+      s.lineTo(tx - side * 0.008, -L + 0.004); // tip, inner
+      s.lineTo(ex - side * 0.01, ey); // elbow, inner
+      s.lineTo(-side * 0.008, 0.006); // hinge, inner
       const geo = new THREE.ExtrudeGeometry(s, { depth: 0.006, bevelEnabled: false });
       geo.translate(0, 0, -0.003);
       const plate = new THREE.Mesh(geo, acrylic);
