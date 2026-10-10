@@ -161,11 +161,6 @@ export class Game {
       }
     }
 
-    // Plastic arms are ghosts on the way down; solid again from the grab onward.
-    const prizeCol = m.prizeBody?.collider(0);
-    if (this.phase === 'open' || this.phase === 'drop') c.setArmsGhost(true);
-    else c.setArmsGhost(false, prizeCol);
-
     switch (this.phase) {
       case 'idle':
         break;

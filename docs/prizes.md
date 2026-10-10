@@ -6,12 +6,12 @@
 
 | Prize | Size | Box (W × D × H cm) | Mass | Rod gap | armTrim | strongTrim |
 |---|---|---|---|---|---|---|
-| Standard Figure (pink) | M | 11 × 8 × 20 | 300 g | 15.2 cm | 0.91 | 0.23 |
-| Mini Figure (mint) | S | 9 × 7 × 18 | 180 g | 13.0 cm | 0.98 | 1.11 |
-| Wide Figure (violet) | L wide | 15 × 9 × 24 | 420 g | 19.1 cm | 0.74 | 0.74 |
-| Tall Figure (sky) | L tall | 12 × 9 × 26 | 500 g | 16.6 cm | 2.45 | 2.22 |
-| Slim Figure (lemon) | S slim | 8 × 6 × 20 | 220 g | 11.6 cm | 3.79 | 4.67 |
-| Premium Figure (coral) | XL | 16 × 11 × 27 | 700 g | 21.0 cm | 0.81 | 0.27 |
+| Standard Figure (pink) | M | 11 × 8 × 20 | 300 g | 15.2 cm | 0.92 | 0.23 |
+| Mini Figure (mint) | S | 9 × 7 × 18 | 180 g | 13.0 cm | 0.97 | 1.11 |
+| Wide Figure (violet) | L wide | 15 × 9 × 24 | 420 g | 19.1 cm | 0.77 | 0.21 |
+| Tall Figure (sky) | L tall | 12 × 9 × 26 | 500 g | 16.6 cm | 2.46 | 2.27 |
+| Slim Figure (lemon) | S slim | 8 × 6 × 20 | 220 g | 11.6 cm | 3.81 | 4.70 |
+| Premium Figure (coral) | XL | 16 × 11 × 27 | 700 g | 21.0 cm | 0.80 | 0.27 |
 
 Each box's centre of mass is offset toward its base (`comAlongH`), so boxes tip toward their heavy end. Arm power scales with each box's weight times its `armTrim` (normal plays) or `strongTrim` (strong plays), so every box is about equally hard (see [physics.md](physics.md#arm-power-is-proportional-to-box-weight)). When a prize is won, the next one in the list is loaded and the rod rack is rebuilt for its size.
 

@@ -30,18 +30,9 @@ The arm shape matches the real acrylic diamond arms: the upper segment bows out 
 
 The **rubber tip** slopes 0.72 rad toward the inside, so a hanging load pries the arm open. Whether the box stays up depends on arm power against that prying force. The acrylic segments have low friction (0.22), so they slide over box edges instead of biting.
 
-**What touches the prize.** The claw never collides with itself, and every part hits the rods and deck. Against the prize (collision groups in `config.ts`):
+The claw never collides with itself (collision groups in `config.ts`). Every part (head, plastic arms and rubber tips) collides with the prize, rods and deck at all times. So the arms can nudge or press the box as the claw comes down, and they squeeze its sides when they close.
 
-| Part | open / drop (coming down) | grab → release |
-|---|---|---|
-| Head | solid | solid |
-| Rubber tips | solid | solid |
-| Lower plastic arm | passes through | solid (once it overlaps the box by < 8 mm) |
-| Upper plastic arm | passes through | passes through |
-
-So the plastic arms can't shove or press the box as the claw comes down, and only the tips (and the head resting lightly on top) can. When the arms close, the lower arms squeeze the box sides. The upper arm sits right over the box's top edges when the head lands, so it never touches the prize, which stops it pressing the box down.
-
-### Lift cap
+## Lift cap
 The claw can **never lift a prize clear**. `game.ts` records the box's 8 corner heights when the lift starts. If any corner rises more than `MAX_LIFT` (5 cm), or the whole box rises more than `MAX_CLEAR` (8 mm), the arms slip: power drops to 0 and they open slightly. The box can then tip and swing on its own, so a corner can end up higher after the slip.
 
 ## Rod rack and funnel
@@ -75,14 +66,7 @@ armScale = (mass / 0.34 kg) × trim        trim = armTrim (normal plays) or stro
 - **`armTrim`:** normal arms lift the gripped end 3.2 cm on average.
 - **`strongTrim`:** the weakest strong arms that bring the end up to the 5 cm lift cap (4.8 cm average), × 1.5 so play-to-play jitter doesn't drop a strong play below it.
 
-With the stored trims:
-
-| | normal lift | strong lift |
-|---|---|---|
-| Standard, Mini, Tall, Slim, Premium | 3.1–3.5 cm | 5.0 cm (cap) |
-| Wide | 2.7 cm | ~3.0 cm |
-
-The **wide** box is shape-limited. The claw grips it nearly flat, so it starts lifting the whole box and the never-lift-clear rule makes the arms slip before one end reaches the cap. No strength fixes that, so its strong trim equals its normal trim.
+With the stored trims, normal arms lift every box's gripped end 3.0–3.35 cm, and strong arms lift every box's end to the 5.0 cm cap.
 
 After a strong lift, what happens next still depends on the box. The same 5 cm lift tips some boxes into the gap and barely moves the tall box (the `move` column of `npm run sim:strength strong`).
 

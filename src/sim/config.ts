@@ -72,5 +72,3 @@ export const GROUP_STATIC = (STATIC << 16) | 0xffff;
 export const GROUP_PRIZE = (PRIZE << 16) | 0xffff;
 /** Claw head and rubber tips: hit everything except the claw itself. */
 export const GROUP_CLAW = (CLAW_BIT << 16) | (0xffff & ~CLAW_BIT);
-/** Arm segments while the claw comes down: pass through the prize, still hit rods/deck. */
-export const GROUP_ARM = (CLAW_BIT << 16) | (0xffff & ~CLAW_BIT & ~PRIZE);
