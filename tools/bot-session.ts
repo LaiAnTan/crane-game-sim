@@ -18,7 +18,8 @@ function playOnce(g: Game, tx: number, tz: number) {
 }
 const m = new Machine(R);
 const s = { ...DEFAULT_SETTINGS, staffAfter: 999, gapExtra: +(process.env.GAP ?? 0.013) } as typeof DEFAULT_SETTINGS;
-if (mode !== 'progressive') { s.mode = 'skill'; s.normal = { grip: +grip, lift: +lift, carry: +lift * 0.5 }; }
+if (mode === 'normal-only') s.mode = 'skill'; // default normal arms, never strong
+else if (mode !== 'progressive') { s.mode = 'skill'; s.normal = { grip: +grip, lift: +lift, carry: +lift * 0.5 }; }
 const g = new Game(m, new Payout(s));
 m.setPrize(CATALOG[+prizeIdx], s.gapExtra);
 for (let i = 0; i < 480; i++) g.tick(PHYSICS_DT);

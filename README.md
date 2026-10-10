@@ -36,7 +36,7 @@ Each round: insert credit → hold ① → hold ② → the claw opens, drops, c
 
 ## Features
 
-- **Machine** — GiGO-style cabinet (magenta trim, GiGO header sign, two pink buttons), white UFO-Catcher-9-style head with a coiled cable and clear acrylic diamond arms, a full chrome rod rack in white clamps, a funnel to a central drop opening, and a back wall stacked with prize boxes.
+- **Machine** — GiGO-style cabinet (magenta trim, GiGO header sign, two pink buttons), white UFO-Catcher-9-style head with a coiled cable and clear acrylic chevron (< >) arms, a full chrome rod rack in white clamps, a funnel to a central drop opening, and a back wall stacked with prize boxes.
 - **Physics** ([docs/physics.md](docs/physics.md)) — Rapier 3D at 240 Hz. The claw hangs on a one-way "cable" joint and backs off on contact; each arm is a hinge with a torque-limited PD motor ("arm power"); boxes have real dimensions, mass and an off-centre centre of mass.
 - **Payout** ([docs/payout.md](docs/payout.md)) — separate grip / lift / carry power per play, play-to-play jitter, and a progressive strong-claw chance that rises from ¥0 to guaranteed at the ceiling (天井).
 - **Money used & pity** — a 使用金額 counter that grows until you win, a 天井 gauge, and a fire effect around the card that intensifies as the pity rises and flares when a strong claw is rolled.

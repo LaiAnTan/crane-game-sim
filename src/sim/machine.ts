@@ -210,10 +210,11 @@ export class Machine {
     let z = BRIDGE.cz + (rng() - 0.5) * 0.012;
     let yaw = (this.prizeFlipped ? Math.PI : 0) + (rng() - 0.5) * 0.04;
     if (mode === 'assist') {
-      // Slide toward one bar and twist a little — a good grab should finish it.
+      // Nudge toward one rod and twist slightly. Each end only overhangs its rod by
+      // ~1–2 cm, so a bigger shift would leave the box all but falling.
       const dir = rng() < 0.5 ? -1 : 1;
-      z = BRIDGE.cz + dir * (0.016 + rng() * 0.008);
-      yaw += dir * (0.12 + rng() * 0.1);
+      z = BRIDGE.cz + dir * (0.004 + rng() * 0.004);
+      yaw += dir * (0.05 + rng() * 0.07);
     }
     const y = this.bridge.barY + BRIDGE.barRadius + hy + 0.002;
 

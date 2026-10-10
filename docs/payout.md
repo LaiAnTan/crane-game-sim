@@ -17,7 +17,18 @@ Closing-torque caps in N·m for a 340 g reference box. Every play multiplies the
 
 Each play multiplies every power by a random factor of 1 ± `jitter` (±12 %), so no two plays are identical.
 
-Normal arms can only nudge the box. In headless tests, an expert bot with normal arms only rarely won within 80 plays. Strong arms reliably bring one end up to the 5 cm lift cap, which moves the box a lot and often tips it into the wedge. Even strong arms can't lift the box clear (see the lift cap), so a strong play is a big opportunity, not a guaranteed win.
+Normal arms only nudge the box (about 1.5 cm of lift on the gripped end). Strong arms reliably bring one end up to the 5 cm lift cap, which moves the box a lot and often tips it into the wedge. Even strong arms can't lift the box clear (see the lift cap), so a strong play is a big opportunity, not a guaranteed win.
+
+### Cost per win
+
+Measured with the headless bot (`tools/bot-session.ts`), which also calls staff after 8 plays without progress:
+
+| Mode | Result |
+|---|---|
+| Normal arms only | 2 of 6 sessions won within 120 plays (¥3,400, and ¥500 on one lucky mini-box play before the mini box was weakened further) |
+| Progressive (default) | 14 of 15 sessions won. Wins ranged from ¥1,100 to ¥6,000, about **¥3,600 per win** on average; almost all wins came after the first strong play. The slim box is the hardest (one session didn't win within ¥12,000). |
+
+The design target is **at least ¥2,000 per prize on average**. If wins come too cheaply, lower `NORMAL_LIFT` and recalibrate, or raise the floor or ceiling.
 
 ## Progressive strong-claw chance
 
@@ -43,7 +54,7 @@ On average the first strong play comes at about ¥2,400 (`npm run sim:curve`). A
 
 ## Staff (すみません)
 
-Between plays, **S** or the すみません button calls staff, who re-place the prize in an easier position: shifted toward one rod and slightly twisted. The button lights up when the prize is stuck, or after `staffAfter` (12) misses in a row.
+Between plays, **S** or the すみません button calls staff, who re-place the prize in a slightly easier position: nudged 0.4–0.8 cm toward one rod and twisted 3–7°. Boxes only overhang each rod by 1–2 cm, so a bigger nudge would leave the box all but falling. The button lights up when the prize is stuck, or after `staffAfter` (12) misses in a row.
 
 ## History
 

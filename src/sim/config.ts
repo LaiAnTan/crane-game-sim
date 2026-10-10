@@ -37,10 +37,11 @@ export const CLAW = {
   headHalfHeight: 0.04,
   headMass: 0.4,
   hingeOffsetX: 0.052,
-  armLength: 0.19, // hinge to tip, vertical
-  elbowX: 0.04, // outward bow of the diamond arm
-  elbowY: 0.085,
-  tipX: 0.004,
+  // Chevron (< >) arm: steep upper segment out to the elbow, steep lower segment back in.
+  armLength: 0.16, // hinge to tip, vertical
+  elbowX: 0.06, // outward bow at the elbow
+  elbowY: 0.075,
+  tipX: -0.005, // tip ends slightly inside the hinge line
   armMass: 0.09,
   footLength: 0.027,
   footSlope: 0.72, // rad; tip surface slopes so load pushes arms open

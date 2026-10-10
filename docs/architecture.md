@@ -8,7 +8,7 @@ src/
   sim/
     config.ts        every physical constant (metres, kg, seconds)
     machine.ts       Rapier world, rod rack, funnel, shelf + back-wall prizes, prize body, queries
-    claw.ts          gantry, cable joint, head, diamond arms, arm torque controller
+    claw.ts          gantry, cable joint, head, chevron arms, arm torque controller
     game.ts          state machine, credits, money used, staff, win detection, lift cap
     payout.ts        operator settings, progressive strong-claw chance
     catalog.ts       prize list (sizes, mass, centre of mass, images)

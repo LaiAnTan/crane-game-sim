@@ -81,7 +81,7 @@ const trimFor = (p: (typeof CATALOG)[number], profile: Profile) =>
 
 // Targets: average gripped-end lift (cm). Normal arms nudge; strong arms reliably bring
 // the end up to just under the 5 cm lift cap (any stronger only makes the box swing more).
-const TARGET: Record<Profile, number> = { normal: 3.2, strong: 4.8 };
+const TARGET: Record<Profile, number> = { normal: +(process.env.NORMAL_LIFT ?? 1.5), strong: 4.8 };
 const STRONG_MARGIN = 1.5;
 
 if (process.argv[2] === 'calibrate') {
@@ -94,7 +94,7 @@ if (process.argv[2] === 'calibrate') {
       targets.map(
         (p) =>
           new Promise<string>((res) => {
-            const c = spawn(process.execPath, [...process.execArgv, process.argv[1], 'calibrate', p.id]);
+            const c = spawn(process.execPath, [...process.execArgv, process.argv[1], 'calibrate', p.id], { env: process.env });
             let out = '';
             c.stdout.on('data', (d) => (out += d));
             c.on('close', () => res(out.trim()));
@@ -115,6 +115,10 @@ if (process.argv[2] === 'calibrate') {
       return Math.sqrt(lo * hi);
     };
     const tn = solve('normal');
+    if (process.env.ONLY === 'normal') {
+      console.log(`${p.id.padEnd(15)} armTrim: ${tn.toFixed(2)}   normal lift ${measure(p, 'normal', tn).lift.toFixed(2)} cm`);
+      process.exit(0);
+    }
     // Strong: the weakest trim that brings the end up to the cap, times a safety margin
     // so play-to-play jitter doesn't drop strong plays below it. Boxes whose shape makes
     // the claw lift them flat (the "never lift clear" rule slips first) can't reach the

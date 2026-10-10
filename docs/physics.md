@@ -26,7 +26,7 @@ Each arm is a hinge with a PD controller toward a moving target angle:
 - **`openPower`** is fixed (opening is never the weak direction).
 - The target ramps at a limited rate, so the arms visibly swing closed over `closeTime` (0.6 s).
 
-The arm shape matches the real acrylic diamond arms: the upper segment bows out to an elbow (4 cm out, 8.5 cm down) so the arms clear the box sides, then the lower segment comes back in to the tip 19 cm below the hinge. When the claw lands on a box, the open tips reach below the box bottom (`npm run sim:reach`).
+Each arm is a steep chevron (< >), like the real acrylic arms: the upper segment runs out to an elbow 6 cm out and 7.5 cm down, so the arms clear the box sides. The lower segment then comes back in to the tip, 16 cm below the hinge and slightly inside it. Both segments are about 37–39° from vertical. When the claw lands on a box, the open tips reach below the box bottom (`npm run sim:reach`).
 
 The **rubber tip** slopes 0.72 rad toward the inside, so a hanging load pries the arm open. Whether the box stays up depends on arm power against that prying force. The acrylic segments have low friction (0.22), so they slide over box edges instead of biting.
 
@@ -63,10 +63,10 @@ armScale = (mass / 0.34 kg) × trim        trim = armTrim (normal plays) or stro
 
 `npm run sim:calibrate` finds both trims. It plays a fixed set of grabs on every box (front end, middle and back end, 3 seeds). It measures how far the claw lifts the box **while holding it**, which ignores the swing after the arms slip, then searches:
 
-- **`armTrim`:** normal arms lift the gripped end 3.2 cm on average.
+- **`armTrim`:** normal arms lift the gripped end 1.5 cm on average, a nudge that only rarely wins on its own (override with `NORMAL_LIFT=…`).
 - **`strongTrim`:** the weakest strong arms that bring the end up to the 5 cm lift cap (4.8 cm average), × 1.5 so play-to-play jitter doesn't drop a strong play below it.
 
-With the stored trims, normal arms lift every box's gripped end 3.0–3.35 cm, and strong arms lift every box's end to the 5.0 cm cap.
+With the stored trims, normal arms lift every box's gripped end 1.4–1.9 cm, and strong arms lift every box's end to the 5 cm cap (tall box 4.6 cm). With chevron arms the tips catch under the box edge as the claw rises, so for the standard, mini and wide boxes even the minimum arm power still lifts about 1.8–1.9 cm, and their normal trims sit at the bottom of the range. `ONLY=normal npm run sim:calibrate` recalibrates just the normal trims.
 
 After a strong lift, what happens next still depends on the box. The same 5 cm lift tips some boxes into the gap and barely moves the tall box (the `move` column of `npm run sim:strength strong`).
 
